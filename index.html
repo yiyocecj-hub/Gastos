@@ -1,0 +1,489 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Control de Gastos 2026</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #0f0f1a; color: #e0e0e0; min-height: 100vh; padding: 16px; padding-bottom: 100px; }
+    h1 { text-align: center; font-size: 1.3rem; margin-bottom: 20px; color: #00e5a0; }
+    .tabs { display: flex; margin-bottom: 20px; border-radius: 14px; overflow: hidden; border: 2px solid #00e5a0; background: #1a1a2e; }
+    .tab { flex: 1; padding: 15px 8px; text-align: center; background: transparent; color: #888; font-weight: 700; font-size: 0.85rem; cursor: pointer; }
+    .tab.active { background: #00e5a0; color: #0f0f1a; }
+    .section { display: none; background: #1a1a2e; border-radius: 18px; padding: 22px; margin-bottom: 20px; border: 1px solid #2a2a4a; }
+    .section.active { display: block; animation: fadeIn 0.3s ease; }
+    @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+    .form-group { margin-bottom: 18px; }
+    label { display: block; margin-bottom: 7px; font-size: 0.8rem; color: #00e5a0; font-weight: 600; text-transform: uppercase; }
+    input, select, textarea { width: 100%; padding: 15px 16px; border: 2px solid #2a2a4a; border-radius: 12px; background: #0f0f1a; color: #e0e0e0; font-size: 1.1rem; -webkit-appearance: none; appearance: none; font-family: inherit; }
+    input:focus, select:focus, textarea:focus { outline: none; border-color: #00e5a0; }
+    select { background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='14' height='14' viewBox='0 0 14 14'%3E%3Cpath fill='%2300e5a0' d='M7 10L2 5h10z'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 16px center; padding-right: 44px; }
+    textarea { resize: vertical; min-height: 70px; }
+    .btn { width: 100%; padding: 17px; border: none; border-radius: 14px; font-size: 1.05rem; font-weight: 700; cursor: pointer; margin-top: 6px; }
+    .btn:active { transform: scale(0.97); } .btn:disabled { opacity: 0.6; }
+    .btn-primary { background: linear-gradient(135deg, #00e5a0, #00b880); color: #0f0f1a; }
+    .btn-secondary { background: transparent; color: #00e5a0; border: 2px solid #00e5a0; margin-top: 16px; }
+    .toast { position: fixed; top: 20px; left: 50%; transform: translateX(-50%) translateY(-120px); padding: 14px 28px; border-radius: 12px; font-weight: 700; font-size: 0.9rem; z-index: 10000; transition: transform 0.5s; max-width: 92%; text-align: center; }
+    .toast.show { transform: translateX(-50%) translateY(0); }
+    .toast.success { background: #00e5a0; color: #0f0f1a; } .toast.error { background: #ff4757; color: #fff; }
+    .modal-overlay { position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.75); display: none; align-items: center; justify-content: center; z-index: 9000; padding: 20px; }
+    .modal-overlay.show { display: flex; animation: fadeIn 0.3s ease; }
+    .modal { background: #1a1a2e; border-radius: 22px; padding: 28px 22px; width: 100%; max-width: 380px; max-height: 85vh; overflow-y: auto; border: 2px solid #00e5a0; }
+    .modal h2 { color: #00e5a0; margin-bottom: 22px; font-size: 1.15rem; text-align: center; }
+    .modal-item { display: flex; justify-content: space-between; padding: 14px 0; border-bottom: 1px solid #2a2a4a; }
+    .modal-item:last-of-type { border-bottom: none; }
+    .modal-item .label { font-size: 0.82rem; color: #aaa; }
+    .modal-item .value { font-size: 0.95rem; font-weight: 700; color: #e0e0e0; text-align: right; }
+    .modal-item .value .prev { display: block; font-size: 0.72rem; color: #666; margin-top: 2px; }
+    .modal-item.highlight { background: rgba(0,229,160,0.05); margin: 0 -22px; padding: 14px 22px; border-radius: 10px; }
+    .modal-item.highlight .value { color: #00e5a0; font-weight: 800; font-size: 1.05rem; }
+    .modal-close { width: 100%; padding: 15px; margin-top: 22px; background: #00e5a0; color: #0f0f1a; border: none; border-radius: 12px; font-size: 1rem; font-weight: 700; }
+    .spinner { display: inline-block; width: 18px; height: 18px; border: 3px solid rgba(15,15,26,0.3); border-radius: 50%; border-top-color: #0f0f1a; animation: spin 0.8s linear infinite; margin-right: 8px; vertical-align: middle; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .dash-controls { display: flex; gap: 10px; margin-bottom: 20px; }
+    .dash-controls select { flex: 1; padding: 12px; font-size: 0.95rem; }
+    .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 12px; margin-bottom: 20px; }
+    .kpi-card { background: #0f0f1a; border: 1px solid #2a2a4a; border-radius: 14px; padding: 16px; position: relative; }
+    .kpi-card::before { content: ''; position: absolute; top: 0; left: 0; width: 4px; height: 100%; background: var(--accent, #3b82f6); }
+    .kpi-label { font-size: 0.7rem; color: #888; text-transform: uppercase; margin-bottom: 8px; }
+    .kpi-value { font-size: 1.4rem; font-weight: 700; margin-bottom: 4px; }
+    .kpi-sub { font-size: 0.7rem; color: #666; }
+    .kpi-card.positive { --accent: #10b981; } .positive .kpi-value { color: #10b981; }
+    .kpi-card.negative { --accent: #ef4444; } .negative .kpi-value { color: #ef4444; }
+    .kpi-card.neutral { --accent: #3b82f6; } .neutral .kpi-value { color: #3b82f6; }
+    .kpi-card.warning { --accent: #f59e0b; } .warning .kpi-value { color: #f59e0b; }
+    .charts-grid { display: grid; grid-template-columns: 1fr; gap: 16px; }
+    @media (min-width: 768px) { .charts-grid { grid-template-columns: repeat(2, 1fr); } }
+    .chart-container { background: #0f0f1a; border: 1px solid #2a2a4a; border-radius: 14px; padding: 18px; min-height: 300px; }
+    .chart-container.full-width { grid-column: 1 / -1; }
+    .chart-title { font-size: 0.9rem; font-weight: 600; margin-bottom: 16px; color: #e0e0e0; display: flex; align-items: center; gap: 8px; }
+    .chart-title::before { content: ''; width: 4px; height: 18px; background: linear-gradient(180deg, #3b82f6, #8b5cf6); border-radius: 2px; }
+    .chart-wrapper { position: relative; height: 250px; } .chart-wrapper.small { height: 200px; }
+    .heatmap-container { display: grid; grid-template-columns: repeat(10, 1fr); gap: 4px; padding: 16px; background: #0f0f1a; border-radius: 12px; }
+    @media (min-width: 768px) { .heatmap-container { grid-template-columns: repeat(31, 1fr); } }
+    .heatmap-day { aspect-ratio: 1; border-radius: 6px; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 600; cursor: pointer; }
+    .heatmap-day.low { background: rgba(16,185,129,0.3); color: #10b981; }
+    .heatmap-day.medium { background: rgba(245,158,11,0.5); color: #f59e0b; }
+    .heatmap-day.high { background: rgba(239,68,68,0.7); color: #ef4444; }
+    .heatmap-day.very-high { background: rgba(239,68,68,0.9); color: #fff; }
+    .heatmap-day.no-data { background: rgba(51,65,85,0.3); color: #475569; }
+    .dash-loading, .dash-error { text-align: center; padding: 40px; color: #888; }
+    .dash-error { color: #ff4757; }
+    .config-error { max-width: 480px; margin: 60px auto; text-align: center; padding: 24px; background: #1a1a2e; border: 2px solid #ff4757; border-radius: 16px; }
+    .config-error h2 { color: #ff4757; margin-bottom: 12px; }
+    .config-error code { display: block; background: #0f0f1a; padding: 10px; border-radius: 8px; margin-top: 12px; word-break: break-all; font-size: 0.8rem; color: #00e5a0; }
+  </style>
+</head>
+<body>
+  <h1>💰 Control de Gastos 2026</h1>
+  <div class="tabs">
+    <div class="tab active" data-tab="gasto">🛒 Gasto</div>
+    <div class="tab" data-tab="fijo">🏠 Gasto Fijo</div>
+    <div class="tab" data-tab="dashboard">📊 Dashboard</div>
+    <div class="tab" data-tab="parametro">⚙️ Parámetros</div>
+  </div>
+
+  <div class="section active" id="section-gasto">
+    <div class="form-group"><label>Fecha</label><input type="date" id="gasto-fecha"></div>
+    <div class="form-group"><label>Categoría</label><select id="gasto-categoria"><option value="">Cargando...</option></select></div>
+    <div class="form-group"><label>Monto ($)</label><input type="number" id="gasto-monto" step="0.01" inputmode="decimal"></div>
+    <div class="form-group"><label>Observación</label><textarea id="gasto-obs"></textarea></div>
+    <button class="btn btn-primary" id="btn-guardar-gasto">💾 Guardar</button>
+  </div>
+
+  <div class="section" id="section-fijo">
+    <div class="form-group"><label>Fecha</label><input type="date" id="fijo-fecha"></div>
+    <div class="form-group"><label>Concepto</label><select id="fijo-concepto"><option value="">Cargando...</option></select></div>
+    <div class="form-group"><label>Monto ($)</label><input type="number" id="fijo-monto" step="0.01" inputmode="decimal"></div>
+    <button class="btn btn-primary" id="btn-guardar-fijo">💾 Guardar</button>
+  </div>
+
+  <div class="section" id="section-dashboard">
+    <div class="dash-controls"><select id="dash-month"><option value="">Cargando...</option></select></div>
+    <div id="dash-content"><div class="dash-loading">Seleccioná un mes</div></div>
+  </div>
+
+  <div class="section" id="section-parametro">
+    <div class="form-group"><label>Mes</label>
+      <select id="param-mes">
+        <option value="">-- Seleccionar --</option>
+        <option value="Ene">Enero</option><option value="Feb">Febrero</option><option value="Mar">Marzo</option>
+        <option value="Abr">Abril</option><option value="May">Mayo</option><option value="Jun">Junio</option>
+        <option value="Jul">Julio</option><option value="Ago">Agosto</option><option value="Sep">Septiembre</option>
+        <option value="Oct">Octubre</option><option value="Nov">Noviembre</option><option value="Dic">Diciembre</option>
+      </select>
+    </div>
+    <div class="form-group"><label>Concepto</label><select id="param-concepto"><option value="">Seleccioná un mes primero</option></select></div>
+    <div class="form-group"><label>Monto ($) - opcional</label><input type="number" id="param-monto" step="0.01" inputmode="decimal"></div>
+    <div class="form-group"><label>Observación - opcional</label><textarea id="param-obs"></textarea></div>
+    <button class="btn btn-primary" id="btn-guardar-param">💾 Guardar</button>
+  </div>
+
+  <button class="btn btn-secondary" id="btn-resumen">📊 Resumen del Mes</button>
+  <div class="toast" id="toast"></div>
+  <div class="modal-overlay" id="modal-overlay">
+    <div class="modal">
+      <h2>📊 Resumen del Mes</h2>
+      <div id="modal-content"></div>
+      <button class="modal-close" id="modal-close">Cerrar</button>
+    </div>
+  </div>
+
+  <script>
+    // ============================================================
+    // CONFIGURACIÓN: pegá acá la URL /exec de TU implementación de Apps Script.
+    // La sacás de: Implementar → Administrar implementaciones → ícono de copiar link.
+    // ============================================================
+    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzTstHCJTVwckMVi4TfwHpnqquKaUAcuZq0FW3-Nrz8Jb6kFVrBBMsc4Iv2sWS43sBo/exec';
+
+    if (!SCRIPT_URL || SCRIPT_URL.indexOf('PEGAR_AQUI') !== -1) {
+      document.body.innerHTML = `
+        <div class="config-error">
+          <h2>⚠️ Falta configurar la URL</h2>
+          <p>Abrí este archivo HTML, buscá la constante <strong>SCRIPT_URL</strong> cerca del final,
+          y reemplazá el placeholder por la URL /exec de tu implementación de Apps Script.</p>
+          <code>const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycb.../exec';</code>
+        </div>`;
+      throw new Error('SCRIPT_URL no configurada');
+    }
+
+    const MONTH_NAMES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
+    const MONTH_FULL = {'Ene':'Enero','Feb':'Febrero','Mar':'Marzo','Abr':'Abril','May':'Mayo','Jun':'Junio','Jul':'Julio','Ago':'Agosto','Sep':'Septiembre','Oct':'Octubre','Nov':'Noviembre','Dic':'Diciembre'};
+
+    // ===== Fecha en hora local =====
+    const pad = n => String(n).padStart(2, '0');
+    function hoyLocal() {
+      const d = new Date();
+      return d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate());
+    }
+    function mesDeFecha(fecha) { return MONTH_NAMES[Number(String(fecha).split('-')[1]) - 1]; }
+
+    document.getElementById('gasto-fecha').value = hoyLocal();
+    document.getElementById('fijo-fecha').value = hoyLocal();
+    document.getElementById('param-mes').value = MONTH_NAMES[new Date().getMonth()];
+
+    // ===== Transporte: fetch en vez de google.script.run (acá ya no corremos adentro =====
+    // ===== del iframe de Apps Script, así que esto es una llamada cross-origin normal) =====
+    async function fetchJSON(url, options) {
+      const res = await fetch(url, options);
+      const text = await res.text();
+      try { return JSON.parse(text); }
+      catch (e) { throw new Error('Respuesta no válida del servidor (revisá la URL configurada)'); }
+    }
+
+    function get(action, params) {
+      const url = new URL(SCRIPT_URL);
+      url.searchParams.set('action', action);
+      Object.entries(params || {}).forEach(([k, v]) => {
+        if (v !== undefined && v !== null) url.searchParams.set(k, v);
+      });
+      return fetchJSON(url.toString());
+    }
+
+    // Importante: Content-Type text/plain evita el preflight CORS (application/json
+    // dispara un OPTIONS que Apps Script no maneja y la llamada fallaría).
+    function post(payload) {
+      return fetchJSON(SCRIPT_URL, {
+        method: 'POST',
+        body: JSON.stringify(payload),
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' }
+      });
+    }
+
+    // Lecturas: 1 reintento automático. Escrituras NO se reintentan (evita cargar doble).
+    async function runLectura(fn) {
+      try { return await fn(); }
+      catch (e) { await new Promise(r => setTimeout(r, 800)); return fn(); }
+    }
+
+    // ===== Caché por mes: categorías + fijos + parámetros en una sola llamada =====
+    const initCache = {};
+    function getInit(monthName) {
+      if (initCache[monthName]) return initCache[monthName];
+      const p = runLectura(() => get('init', { monthName })).then(data => {
+        if (!data) throw new Error('Respuesta vacía del servidor');
+        if (data.error) throw new Error(data.error);
+        return data;
+      });
+      initCache[monthName] = p;
+      p.catch(() => { if (initCache[monthName] === p) delete initCache[monthName]; });
+      return p;
+    }
+
+    function llenarSelect(selectElement, itemsArray) {
+      selectElement.innerHTML = '<option value="">-- Seleccionar --</option>';
+      itemsArray.forEach(item => {
+        const opt = document.createElement('option');
+        opt.value = item.name || item;
+        opt.textContent = item.name || item;
+        selectElement.appendChild(opt);
+      });
+    }
+
+    async function cargarSelect(select, monthName, key) {
+      if (!monthName) return;
+      if (select.dataset.month === monthName && select.options.length > 1) return;
+      select.dataset.pending = monthName;
+      select.dataset.month = '';
+      select.innerHTML = '<option value="">Cargando...</option>';
+      try {
+        const data = await getInit(monthName);
+        if (select.dataset.pending !== monthName) return;
+        llenarSelect(select, data[key]);
+        select.dataset.month = monthName;
+      } catch (err) {
+        if (select.dataset.pending !== monthName) return;
+        select.innerHTML = '<option value="">Error</option>';
+        showToast('❌ ' + err.message, 'error');
+      }
+    }
+
+    function cargarCategorias() {
+      const fecha = document.getElementById('gasto-fecha').value;
+      if (!fecha) return;
+      return cargarSelect(document.getElementById('gasto-categoria'), mesDeFecha(fecha), 'categorias');
+    }
+    function loadFixedConcepts() {
+      const fecha = document.getElementById('fijo-fecha').value;
+      if (!fecha) return;
+      return cargarSelect(document.getElementById('fijo-concepto'), mesDeFecha(fecha), 'fixedConcepts');
+    }
+    function loadParamConcepts() {
+      const monthName = document.getElementById('param-mes').value;
+      const select = document.getElementById('param-concepto');
+      if (!monthName) { select.dataset.month = ''; select.innerHTML = '<option value="">Seleccioná un mes primero</option>'; return; }
+      return cargarSelect(select, monthName, 'paramConcepts');
+    }
+
+    // ===== Pestañas =====
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.section').forEach(s => s.classList.remove('active'));
+        tab.classList.add('active');
+        document.getElementById('section-' + tab.dataset.tab).classList.add('active');
+        const btn = document.getElementById('btn-resumen');
+        if (tab.dataset.tab === 'dashboard') { btn.style.display = 'none'; loadDashboardMonths(); }
+        else if (tab.dataset.tab === 'fijo') { btn.style.display = 'block'; loadFixedConcepts(); }
+        else if (tab.dataset.tab === 'gasto') { btn.style.display = 'block'; cargarCategorias(); }
+        else if (tab.dataset.tab === 'parametro') { btn.style.display = 'block'; loadParamConcepts(); }
+        else { btn.style.display = 'block'; }
+      });
+    });
+
+    let toastTimeout;
+    function showToast(message, type) {
+      const toast = document.getElementById('toast');
+      clearTimeout(toastTimeout);
+      toast.textContent = message;
+      toast.className = 'toast ' + type;
+      void toast.offsetWidth;
+      toast.classList.add('show');
+      toastTimeout = setTimeout(() => toast.classList.remove('show'), 3500);
+    }
+
+    function formatMoney(val) {
+      if (val === 'N/A' || val === null || val === undefined || val === '') return 'N/A';
+      const num = Number(val);
+      if (isNaN(num)) return String(val);
+      return '$' + num.toLocaleString('es-AR', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
+    }
+
+    // ===== Gasto diario =====
+    document.getElementById('gasto-fecha').addEventListener('change', cargarCategorias);
+
+    document.getElementById('btn-guardar-gasto').addEventListener('click', async function() {
+      const fecha = document.getElementById('gasto-fecha').value;
+      const categoria = document.getElementById('gasto-categoria').value;
+      const montoStr = document.getElementById('gasto-monto').value;
+      const obs = document.getElementById('gasto-obs').value.trim();
+      if (!fecha || !categoria || montoStr === '') { showToast('⚠️ Completá todos los campos', 'error'); return; }
+      const btn = this; btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+      try {
+        const data = await post({ type: 'gasto', fecha, categoria, monto: parseFloat(montoStr), observacion: obs });
+        if (data && data.status === 'success') { showToast('✅ Guardado', 'success'); document.getElementById('gasto-monto').value = ''; document.getElementById('gasto-obs').value = ''; }
+        else { showToast('❌ ' + (data ? data.message : 'Respuesta vacía'), 'error'); }
+      } catch (err) { showToast('❌ ' + err.message, 'error'); }
+      finally { btn.disabled = false; btn.textContent = '💾 Guardar'; }
+    });
+
+    // ===== Gasto fijo =====
+    document.getElementById('fijo-fecha').addEventListener('change', loadFixedConcepts);
+
+    document.getElementById('btn-guardar-fijo').addEventListener('click', async function() {
+      const fecha = document.getElementById('fijo-fecha').value;
+      const concepto = document.getElementById('fijo-concepto').value;
+      const montoStr = document.getElementById('fijo-monto').value;
+      if (!fecha || !concepto || montoStr === '') { showToast('⚠️ Completá todos los campos', 'error'); return; }
+      const btn = this; btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+      try {
+        const data = await post({ type: 'gastoFijo', fecha, concepto, monto: parseFloat(montoStr) });
+        if (data && data.status === 'success') { showToast('✅ Guardado', 'success'); document.getElementById('fijo-monto').value = ''; }
+        else { showToast('❌ ' + (data ? data.message : 'Respuesta vacía'), 'error'); }
+      } catch (err) { showToast('❌ ' + err.message, 'error'); }
+      finally { btn.disabled = false; btn.textContent = '💾 Guardar'; }
+    });
+
+    // ===== Parámetros =====
+    document.getElementById('param-mes').addEventListener('change', loadParamConcepts);
+
+    document.getElementById('btn-guardar-param').addEventListener('click', async function() {
+      const mes = document.getElementById('param-mes').value;
+      const concepto = document.getElementById('param-concepto').value;
+      const montoStr = document.getElementById('param-monto').value.trim();
+      const obs = document.getElementById('param-obs').value.trim();
+      if (!mes || !concepto) { showToast('⚠️ Seleccioná mes y concepto', 'error'); return; }
+      if (montoStr === '' && obs === '') { showToast('⚠️ Ingresá monto u observación', 'error'); return; }
+      const monthIndex = MONTH_NAMES.indexOf(mes);
+      const fecha = new Date().getFullYear() + '-' + pad(monthIndex + 1) + '-01';
+      const monto = montoStr !== '' ? parseFloat(montoStr) : null;
+      const btn = this; btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+      try {
+        const data = await post({ type: 'parametro', fecha, concepto, monto, observacion: obs });
+        if (data && data.status === 'success') { showToast('✅ Guardado', 'success'); document.getElementById('param-monto').value = ''; document.getElementById('param-obs').value = ''; }
+        else { showToast('❌ ' + (data ? data.message : 'Respuesta vacía'), 'error'); }
+      } catch (err) { showToast('❌ ' + err.message, 'error'); }
+      finally { btn.disabled = false; btn.textContent = '💾 Guardar'; }
+    });
+
+    // ===== Resumen =====
+    document.getElementById('btn-resumen').addEventListener('click', async function() {
+      const btn = this; btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
+      try {
+        const data = await runLectura(() => get('resumen', { fecha: hoyLocal() }));
+        if (!data || data.error) { showToast('❌ ' + (data ? data.error : 'Respuesta vacía'), 'error'); return; }
+        document.getElementById('modal-content').innerHTML = `
+          <div class="modal-item highlight"><span class="label">Presupuesto Restante</span><span class="value">${formatMoney(data.presupuestoRestante)}</span></div>
+          <div class="modal-item"><span class="label">Total Disponible</span><span class="value">${formatMoney(data.totalDisponible)}</span></div>
+          <div class="modal-item"><span class="label">Gastos Fijos</span><span class="value">${formatMoney(data.gastosFijos)}</span></div>
+          <div class="modal-item"><span class="label">Gastos Varios</span><span class="value">${formatMoney(data.gastosVarios)}</span></div>
+          <div class="modal-item"><span class="label">Gasto Total</span><span class="value">${formatMoney(data.gastoTotal)}<span class="prev">(Mes ant: ${formatMoney(data.gastoTotalMesAnterior)})</span></span></div>`;
+        document.getElementById('modal-overlay').classList.add('show');
+      } catch (err) { showToast('❌ ' + err.message, 'error'); }
+      finally { btn.disabled = false; btn.textContent = '📊 Resumen del Mes'; }
+    });
+    document.getElementById('modal-close').addEventListener('click', () => document.getElementById('modal-overlay').classList.remove('show'));
+    document.getElementById('modal-overlay').addEventListener('click', (e) => { if (e.target === document.getElementById('modal-overlay')) document.getElementById('modal-overlay').classList.remove('show'); });
+
+    // ===== Dashboard =====
+    let dashCharts = {};
+    let dashRequestId = 0;
+    function loadDashboardMonths() {
+      const select = document.getElementById('dash-month');
+      if (select.options.length > 1) return;
+      select.innerHTML = '<option value="">Seleccioná un mes</option>';
+      const currentMonth = MONTH_NAMES[new Date().getMonth()];
+      MONTH_NAMES.forEach(m => {
+        const opt = document.createElement('option'); opt.value = m; opt.textContent = MONTH_FULL[m];
+        if (m === currentMonth) opt.selected = true;
+        select.appendChild(opt);
+      });
+      select.addEventListener('change', (e) => { if (e.target.value) loadDashboard(e.target.value); });
+      if (currentMonth) { select.value = currentMonth; loadDashboard(currentMonth); }
+    }
+
+    function loadDashboard(monthName) {
+      const reqId = ++dashRequestId;
+      const content = document.getElementById('dash-content');
+      content.innerHTML = '<div class="dash-loading"><span class="spinner"></span>Cargando...</div>';
+      runLectura(() => get('dashboard', { monthName }))
+        .then((data) => {
+          if (reqId !== dashRequestId) return;
+          if (!data || data.error) { content.innerHTML = '<div class="dash-error">❌ ' + (data ? data.error : 'Respuesta vacía') + '</div>'; return; }
+          renderDashboard(data);
+        })
+        .catch((err) => {
+          if (reqId !== dashRequestId) return;
+          content.innerHTML = '<div class="dash-error">❌ ' + err.message + '</div>';
+        });
+    }
+
+    function renderDashboard(data) {
+      const d = data; const s = d.summary;
+      const ahorroObjetivo = s.sueldo * 0.5;
+      const disponible = s.sueldo - s.totalSobre50;
+      const pctGasto = s.sueldo > 0 ? (s.totalSobre50 / s.sueldo * 100).toFixed(1) : 0;
+      const pctAhorro = s.sueldo > 0 ? ((disponible / s.sueldo) * 100).toFixed(1) : 0;
+
+      document.getElementById('dash-content').innerHTML = `
+        <div class="kpi-grid">
+          <div class="kpi-card neutral"><div class="kpi-label">💰 Sueldo</div><div class="kpi-value">${formatMoney(s.sueldo)}</div></div>
+          <div class="kpi-card negative"><div class="kpi-label">📉 Total Gastos</div><div class="kpi-value">${formatMoney(s.totalSobre50)}</div><div class="kpi-sub">${pctGasto}% del sueldo</div></div>
+          <div class="kpi-card neutral"><div class="kpi-label">💵 Resto del Sueldo</div><div class="kpi-value">${formatMoney(disponible)}</div><div class="kpi-sub">${pctAhorro}% del sueldo</div></div>
+          <div class="kpi-card positive"><div class="kpi-label">🏦 Total Disponible</div><div class="kpi-value">${formatMoney(s.totalDisponible)}</div><div class="kpi-sub">Columna I</div></div>
+          <div class="kpi-card ${s.presupuestoRestante >= ahorroObjetivo ? 'positive' : 'warning'}"><div class="kpi-label">🎯 Presupuesto Restante</div><div class="kpi-value">${formatMoney(s.presupuestoRestante)}</div><div class="kpi-sub">Obj: ${formatMoney(ahorroObjetivo)}</div></div>
+          <div class="kpi-card neutral"><div class="kpi-label">🏠 Gastos Fijos</div><div class="kpi-value">${formatMoney(s.gastosFijos)}</div></div>
+          <div class="kpi-card neutral"><div class="kpi-label">🛒 Gastos Varios</div><div class="kpi-value">${formatMoney(s.gastosVarios)}</div></div>
+        </div>
+        <div class="charts-grid">
+          <div class="chart-container"><div class="chart-title">Fijos vs Varios</div><div class="chart-wrapper small"><canvas id="pieChart"></canvas></div></div>
+          <div class="chart-container"><div class="chart-title">Top 5 Categorías</div><div class="chart-wrapper small"><canvas id="topCategoriesChart"></canvas></div></div>
+          <div class="chart-container"><div class="chart-title">Gastos Fijos Detallados</div><div class="chart-wrapper"><canvas id="fixedExpensesChart"></canvas></div></div>
+          <div class="chart-container"><div class="chart-title">Evolución Diaria</div><div class="chart-wrapper"><canvas id="dailyTotalChart"></canvas></div></div>
+          <div class="chart-container full-width"><div class="chart-title">Comparación por Categoría</div><div class="chart-wrapper"><canvas id="categoriesComparisonChart"></canvas></div></div>
+          <div class="chart-container full-width"><div class="chart-title">🔥 Heatmap</div><div id="heatmapContainer" class="heatmap-container"></div></div>
+        </div>`;
+      renderCharts(d); renderHeatmap(d);
+    }
+
+    function renderCharts(data) {
+      const d = data; const s = d.summary;
+      Object.values(dashCharts).forEach(c => { if (c) c.destroy(); }); dashCharts = {};
+      const defaults = { responsive: true, maintainAspectRatio: false, plugins: { legend: { labels: { color: '#e0e0e0' } } }, scales: { x: { ticks: { color: '#888' }, grid: { color: 'rgba(42,42,74,0.3)' } }, y: { ticks: { color: '#888' }, grid: { color: 'rgba(42,42,74,0.3)' } } } };
+
+      dashCharts.pie = new Chart(document.getElementById('pieChart').getContext('2d'), {
+        type: 'doughnut', data: { labels: ['Gastos Fijos', 'Gastos Varios'], datasets: [{ data: [s.gastosFijos, s.gastosVarios], backgroundColor: ['#3b82f6', '#8b5cf6'], borderWidth: 0 }] },
+        options: { ...defaults, plugins: { legend: { position: 'bottom', labels: { color: '#e0e0e0' } } } }
+      });
+
+      const sortedCats = Object.entries(d.categories).filter(([k, v]) => v > 0).sort((a, b) => b[1] - a[1]).slice(0, 5);
+      dashCharts.top = new Chart(document.getElementById('topCategoriesChart').getContext('2d'), {
+        type: 'bar', data: { labels: sortedCats.map(c => c[0]), datasets: [{ data: sortedCats.map(c => c[1]), backgroundColor: ['#ef4444', '#f59e0b', '#10b981', '#3b82f6', '#8b5cf6'], borderRadius: 8 }] },
+        options: { ...defaults, plugins: { legend: { display: false } } }
+      });
+
+      dashCharts.fixed = new Chart(document.getElementById('fixedExpensesChart').getContext('2d'), {
+        type: 'bar', data: { labels: d.fixedExpenses.map(e => e.name), datasets: [{ data: d.fixedExpenses.map(e => e.value), backgroundColor: 'rgba(59, 130, 246, 0.6)', borderColor: '#3b82f6', borderWidth: 1, borderRadius: 6 }] },
+        options: { ...defaults, indexAxis: 'y', plugins: { legend: { display: false } } }
+      });
+
+      dashCharts.daily = new Chart(document.getElementById('dailyTotalChart').getContext('2d'), {
+        type: 'line', data: { labels: d.dailyExpenses.map(d => `Día ${d.day}`), datasets: [{ data: d.dailyExpenses.map(d => d.total), borderColor: '#10b981', backgroundColor: 'rgba(16, 185, 129, 0.1)', borderWidth: 3, fill: true, tension: 0.4, pointRadius: 4 }] },
+        options: { ...defaults, plugins: { legend: { display: false } } }
+      });
+
+      const catEntries = Object.entries(d.categories).filter(([k, v]) => v > 0);
+      const colors = ['rgba(239,68,68,0.7)', 'rgba(245,158,11,0.7)', 'rgba(16,185,129,0.7)', 'rgba(59,130,246,0.7)', 'rgba(139,92,246,0.7)', 'rgba(236,72,153,0.7)', 'rgba(6,182,212,0.7)', 'rgba(132,204,22,0.7)', 'rgba(249,115,22,0.7)', 'rgba(148,163,184,0.7)', 'rgba(251,191,36,0.7)', 'rgba(99,102,241,0.7)'];
+      dashCharts.comp = new Chart(document.getElementById('categoriesComparisonChart').getContext('2d'), {
+        type: 'bar', data: { labels: catEntries.map(c => c[0]), datasets: [{ data: catEntries.map(c => c[1]), backgroundColor: colors.slice(0, catEntries.length), borderRadius: 8 }] },
+        options: { ...defaults, plugins: { legend: { display: false } } }
+      });
+    }
+
+    function renderHeatmap(data) {
+      const d = data; const container = document.getElementById('heatmapContainer');
+      const maxGasto = Math.max(...d.dailyExpenses.map(d => d.total), 1);
+      const dayMap = {}; d.dailyExpenses.forEach(d => { dayMap[d.day] = d.total; });
+      for (let day = 1; day <= 31; day++) {
+        const div = document.createElement('div'); div.className = 'heatmap-day'; div.textContent = day;
+        const gasto = dayMap[day] || 0;
+        if (gasto === 0) div.className += ' no-data';
+        else {
+          const r = gasto / maxGasto;
+          if (r < 0.25) div.className += ' low';
+          else if (r < 0.5) div.className += ' medium';
+          else if (r < 0.75) div.className += ' high';
+          else div.className += ' very-high';
+        }
+        div.addEventListener('click', () => alert(`Día ${day}: ${formatMoney(gasto)}`));
+        container.appendChild(div);
+      }
+    }
+
+    // Carga inicial
+    cargarCategorias();
+  </script>
+</body>
+</html>
