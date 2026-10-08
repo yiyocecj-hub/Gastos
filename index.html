@@ -97,6 +97,7 @@
     <div class="form-group"><label>Fecha</label><input type="date" id="fijo-fecha"></div>
     <div class="form-group"><label>Concepto</label><select id="fijo-concepto"><option value="">Cargando...</option></select></div>
     <div class="form-group"><label>Monto ($)</label><input type="number" id="fijo-monto" step="0.01" inputmode="decimal"></div>
+    <div class="form-group"><label>Observación</label><textarea id="fijo-obs"></textarea></div>
     <button class="btn btn-primary" id="btn-guardar-fijo">💾 Guardar</button>
   </div>
 
@@ -136,7 +137,7 @@
     // CONFIGURACIÓN: pegá acá la URL /exec de TU implementación de Apps Script.
     // La sacás de: Implementar → Administrar implementaciones → ícono de copiar link.
     // ============================================================
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzTstHCJTVwckMVi4TfwHpnqquKaUAcuZq0FW3-Nrz8Jb6kFVrBBMsc4Iv2sWS43sBo/exec';
+    const SCRIPT_URL = 'PEGAR_AQUI_TU_URL_EXEC';
 
     if (!SCRIPT_URL || SCRIPT_URL.indexOf('PEGAR_AQUI') !== -1) {
       document.body.innerHTML = `
@@ -316,11 +317,12 @@
       const fecha = document.getElementById('fijo-fecha').value;
       const concepto = document.getElementById('fijo-concepto').value;
       const montoStr = document.getElementById('fijo-monto').value;
+      const obs = document.getElementById('fijo-obs').value.trim();
       if (!fecha || !concepto || montoStr === '') { showToast('⚠️ Completá todos los campos', 'error'); return; }
       const btn = this; btn.disabled = true; btn.innerHTML = '<span class="spinner"></span>';
       try {
-        const data = await post({ type: 'gastoFijo', fecha, concepto, monto: parseFloat(montoStr) });
-        if (data && data.status === 'success') { showToast('✅ Guardado', 'success'); document.getElementById('fijo-monto').value = ''; }
+        const data = await post({ type: 'gastoFijo', fecha, concepto, monto: parseFloat(montoStr), observacion: obs });
+        if (data && data.status === 'success') { showToast('✅ Guardado', 'success'); document.getElementById('fijo-monto').value = ''; document.getElementById('fijo-obs').value = ''; }
         else { showToast('❌ ' + (data ? data.message : 'Respuesta vacía'), 'error'); }
       } catch (err) { showToast('❌ ' + err.message, 'error'); }
       finally { btn.disabled = false; btn.textContent = '💾 Guardar'; }
