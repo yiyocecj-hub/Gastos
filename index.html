@@ -137,7 +137,7 @@
     // CONFIGURACIÓN: pegá acá la URL /exec de TU implementación de Apps Script.
     // La sacás de: Implementar → Administrar implementaciones → ícono de copiar link.
     // ============================================================
-    const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzTstHCJTVwckMVi4TfwHpnqquKaUAcuZq0FW3-Nrz8Jb6kFVrBBMsc4Iv2sWS43sBo/exec';
+    const SCRIPT_URL = 'PEGAR_AQUI_TU_URL_EXEC';
 
     if (!SCRIPT_URL || SCRIPT_URL.indexOf('PEGAR_AQUI') !== -1) {
       document.body.innerHTML = `
@@ -359,8 +359,8 @@
         document.getElementById('modal-content').innerHTML = `
           <div class="modal-item highlight"><span class="label">Presupuesto Restante</span><span class="value">${formatMoney(data.presupuestoRestante)}</span></div>
           <div class="modal-item"><span class="label">Total Disponible</span><span class="value">${formatMoney(data.totalDisponible)}</span></div>
-          <div class="modal-item"><span class="label">Gastos Fijos</span><span class="value">${formatMoney(data.gastosFijos)}</span></div>
-          <div class="modal-item"><span class="label">Gastos Varios</span><span class="value">${formatMoney(data.gastosVarios)}</span></div>
+          <div class="modal-item"><span class="label">Gastos Fijos</span><span class="value">${formatMoney(data.gastosFijos)}<span class="prev">(Mes ant: ${formatMoney(data.gastosFijosMesAnterior)})</span></span></div>
+          <div class="modal-item"><span class="label">Gastos Varios</span><span class="value">${formatMoney(data.gastosVarios)}<span class="prev">(Mes ant: ${formatMoney(data.gastosVariosMesAnterior)})</span></span></div>
           <div class="modal-item"><span class="label">Gasto Total</span><span class="value">${formatMoney(data.gastoTotal)}<span class="prev">(Mes ant: ${formatMoney(data.gastoTotalMesAnterior)})</span></span></div>`;
         document.getElementById('modal-overlay').classList.add('show');
       } catch (err) { showToast('❌ ' + err.message, 'error'); }
