@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Control de Gastos 2026</title>
+<title>Control de Gastos</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
 *,*::before,*::after{box-sizing:border-box;}
@@ -35,7 +35,12 @@ h1,h2,h3,p{margin:0;}
 .logo{width:46px;height:46px;border-radius:14px;display:grid;place-items:center;font-size:22px;background:linear-gradient(135deg,#6366f1,#8b5cf6);box-shadow:0 8px 20px -8px rgba(99,102,241,.8);}
 .brand h1{font-size:20px;letter-spacing:-.02em;}
 .brand p{font-size:13px;color:var(--text-soft);margin-top:2px;}
-.top-actions{display:flex;gap:10px;}
+.top-actions{display:flex;gap:10px;align-items:center;}
+.planilla-select{width:auto;height:44px;border-radius:14px;font-weight:600;box-shadow:var(--shadow);cursor:pointer;}
+.planilla-select[hidden]{display:none;}
+.logo{flex:none;}
+.brand{min-width:0;}
+@media(max-width:480px){.topbar{padding:18px 14px 6px;gap:8px;}.brand{gap:10px;}.brand h1{font-size:17px;}.planilla-select{height:40px;padding:6px 8px;font-size:13px;}.icon-btn{width:40px;height:40px;}.top-actions{gap:6px;}}
 .icon-btn{width:44px;height:44px;border-radius:14px;border:1px solid var(--border);background:var(--bg-elev);color:var(--text);font-size:18px;cursor:pointer;display:grid;place-items:center;transition:.18s;box-shadow:var(--shadow);}
 .icon-btn:hover{transform:translateY(-1px);background:var(--bg-soft);}
 .icon-btn.spin{animation:spin .8s linear infinite;}
@@ -162,11 +167,12 @@ textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-so
   <div class="brand">
     <div class="logo">💸</div>
     <div>
-      <h1>Control de Gastos 2026</h1>
+      <h1 id="titulo">Control de Gastos</h1>
       <p id="estado">Pesos argentinos</p>
     </div>
   </div>
   <div class="top-actions">
+    <select id="planillaSelect" class="planilla-select" title="Planilla" aria-label="Planilla" hidden></select>
     <button id="btnRefrescar" class="icon-btn" title="Releer la planilla" aria-label="Releer la planilla">⟳</button>
     <button id="themeToggle" class="icon-btn" title="Cambiar tema" aria-label="Cambiar tema">🌙</button>
   </div>
@@ -334,7 +340,16 @@ textarea:focus{border-color:var(--primary);box-shadow:0 0 0 3px var(--primary-so
 <div class="toast" id="toast"></div>
 
 <script>
-const SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbzTstHCJTVwckMVi4TfwHpnqquKaUAcuZq0FW3-Nrz8Jb6kFVrBBMsc4Iv2sWS43sBo/exec';
+/* Planillas disponibles. Cada una tiene su propio Apps Script (su propia URL /exec).
+   Para sumar una (por ejemplo 2027) se agrega una línea: { nombre: '2027', url: 'https://script.google.com/macros/s/.../exec' } */
+const PLANILLAS = [{ nombre: '2026', url: 'https://script.google.com/macros/s/AKfycbzTstHCJTVwckMVi4TfwHpnqquKaUAcuZq0FW3-Nrz8Jb6kFVrBBMsc4Iv2sWS43sBo/exec' }, { nombre: '2027', url: 'https://script.google.com/macros/s/AKfycbzIA_7_YnQHXOyA2DmYiMn0bTkpZuOWq6I70TLXLSBl8CaipiWbdTdLwpWFsU2LHid3/exec' }];
+let planillaIdx = 0;
+try {
+  const g = localStorage.getItem('planillaGastos');
+  const i = PLANILLAS.findIndex(p => p.nombre === g);
+  if (i !== -1) planillaIdx = i;
+} catch (err) {}
+let SCRIPT_URL = PLANILLAS[planillaIdx].url;
 
 const MONTH_NAMES = ['Ene','Feb','Mar','Abr','May','Jun','Jul','Ago','Sep','Oct','Nov','Dic'];
 const MONTH_FULL = {'Ene':'Enero','Feb':'Febrero','Mar':'Marzo','Abr':'Abril','May':'Mayo','Jun':'Junio','Jul':'Julio','Ago':'Agosto','Sep':'Septiembre','Oct':'Octubre','Nov':'Noviembre','Dic':'Diciembre'};
@@ -411,6 +426,7 @@ function getHist(force) {
     if (d.error) throw new Error(d.error);
     d.items.forEach(it => {
       it.obs = (it.observacion || '');
+      if (it.fechaOrigen === 'semana') { const mm = /^Semana (\d+)(?: · )?/.exec(it.obs); if (mm) { it.semana = mm[1]; it.obs = it.obs.slice(mm[0].length); } }
       it.sortFecha = it.fecha || (d.anio + '-' + pad(MONTH_NAMES.indexOf(it.mes) + 1) + '-00');
     });
     hist = d;
@@ -547,6 +563,8 @@ function ordenar(arr, key, dir) {
   });
 }
 function celdaFecha(it) {
+  if (it.fechaOrigen === 'semana') return '<span title="Pestaña semanal: la planilla no tiene el día">' + MONTH_FULL[it.mes] + ' · sem. ' + esc(it.semana || '') + '</span>';
+  if (!it.fecha) return '<span title="Sin fecha en la planilla">' + esc(MONTH_FULL[it.mes]) + '</span>';
   if (it.fechaOrigen === 'mes') return '<span title="Sin día en la planilla: se muestra el mes">' + MONTH_FULL[it.mes] + ' ' + hist.anio + '</span>';
   if (it.fechaOrigen === 'fecha-invalida') return '<span title="Fila previa al día 1 de ' + esc(MONTH_FULL[it.mes]) + ' con un día que no existe en el mes anterior">' + esc(it.mes) + ' · sin fecha válida</span>';
   if (it.fechaOrigen === 'fila-previa') return '<span title="Fila previa al día 1 de la pestaña ' + esc(MONTH_FULL[it.mes]) + ' (la planilla la suma en ' + esc(MONTH_FULL[it.mes]) + ')">' + fechaFmt(it.fecha) + '</span>';
@@ -783,26 +801,12 @@ async function abrirResumen(mes) {
   try {
     const h = await getHist();
     if (!mes) { const a = MONTH_NAMES[new Date().getMonth()]; mes = h.meses.includes(a) ? a : h.meses[h.meses.length - 1]; }
-    const idx = h.meses.indexOf(mes);
-    const prevMes = idx > 0 ? h.meses[idx - 1] : null;
-    const [cur, prv] = await Promise.all([getDash(mes), prevMes ? getDash(prevMes) : Promise.resolve(null)]);
+    const cur = await getDash(mes);
     const s = cur.summary;
-    let html = '<p class="modal-sub">' + esc(MONTH_FULL[mes]) + (prevMes ? ' vs ' + esc(MONTH_FULL[prevMes]) : '') + '</p>';
-    html += '<table class="resumen-table"><thead><tr><th></th>' + (prv ? '<th>' + esc(prevMes) + '</th>' : '') + '<th>' + esc(mes) + '</th>' + (prv ? '<th>Diferencia</th>' : '') + '</tr></thead><tbody>';
+    let html = '<p class="modal-sub">' + esc(MONTH_FULL[mes]) + '</p>';
+    html += '<table class="resumen-table"><tbody>';
     [['Gasto total', 'totalSobre50'], ['Gastos fijos', 'gastosFijos'], ['Gastos varios', 'gastosVarios'], ['Presupuesto restante', 'presupuestoRestante'], ['Total disponible', 'totalDisponible']].forEach(([label, k]) => {
-      let dif = '';
-      if (prv) {
-        const d = s[k] - prv.summary[k];
-        let cls = 'dif-eq', txt = '—';
-        if (Math.abs(d) > 0.5) {
-          const p = prv.summary[k] ? d / Math.abs(prv.summary[k]) * 100 : 0;
-          const malo = (k === 'presupuestoRestante' || k === 'totalDisponible') ? d < 0 : d > 0;
-          cls = malo ? 'dif-up' : 'dif-down';
-          txt = (d > 0 ? '+' : '−') + money(Math.abs(d)) + ' (' + (d > 0 ? '+' : '−') + pctStr(Math.abs(p)) + ')';
-        }
-        dif = '<td class="' + cls + '">' + txt + '</td>';
-      }
-      html += '<tr><td>' + label + '</td>' + (prv ? '<td>' + money(prv.summary[k]) + '</td>' : '') + '<td>' + money(s[k]) + '</td>' + dif + '</tr>';
+      html += '<tr><td>' + label + '</td><td>' + money(s[k]) + '</td></tr>';
     });
     html += '</tbody></table>';
     cont.innerHTML = html;
@@ -879,6 +883,38 @@ document.getElementById('formNuevo').addEventListener('submit', async e => {
   }
 });
 
+
+/* ================= Planilla activa ================= */
+function renderPlanillas() {
+  const sel = document.getElementById('planillaSelect');
+  document.getElementById('titulo').textContent = 'Control de Gastos ' + PLANILLAS[planillaIdx].nombre;
+  document.title = 'Control de Gastos ' + PLANILLAS[planillaIdx].nombre;
+  if (PLANILLAS.length < 2) { sel.hidden = true; return; }
+  sel.innerHTML = PLANILLAS.map((p, i) => '<option value="' + i + '">' + esc(p.nombre) + '</option>').join('');
+  sel.value = String(planillaIdx);
+  sel.hidden = false;
+}
+function cambiarPlanilla(i) {
+  if (i === planillaIdx || !PLANILLAS[i]) return;
+  planillaIdx = i;
+  SCRIPT_URL = PLANILLAS[i].url;
+  try { localStorage.setItem('planillaGastos', PLANILLAS[i].nombre); } catch (err) {}
+  // todo lo leído pertenece a la planilla anterior
+  Object.keys(initCache).forEach(k => delete initCache[k]);
+  Object.keys(dashCache).forEach(k => delete dashCache[k]);
+  hist = null; histPromise = null; state.mes = null; state.dash = null; state.stale = false;
+  state.limFijos = PAGE; state.limVarios = PAGE;
+  ['searchFijos', 'searchVarios', 'filtroDesde', 'filtroHasta'].forEach(id => { document.getElementById(id).value = ''; });
+  ['fijosMes', 'filtroCat'].forEach(id => { document.getElementById(id).value = ''; });
+  renderPlanillas();
+  setEstado('Cambiando a la planilla ' + PLANILLAS[i].nombre + '…');
+  fMonto.value = ''; fObs.value = ''; fCat.value = '';
+  cargarOpciones();
+  if (state.tab === 'fijos' || state.tab === 'varios' || state.tab === 'dashboard') asegurarHistorial(true);
+  else getHist().then(() => { prepararFiltros(); setEstado('Planilla ' + PLANILLAS[planillaIdx].nombre); }).catch(() => {});
+}
+document.getElementById('planillaSelect').addEventListener('change', e => cambiarPlanilla(Number(e.target.value)));
+
 /* ================= Refrescar / tema ================= */
 document.getElementById('btnRefrescar').addEventListener('click', async function () {
   this.classList.add('spin');
@@ -905,6 +941,7 @@ document.getElementById('themeToggle').addEventListener('click', () => {
     if (g) tema = g; else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) tema = 'dark';
   } catch (err) {}
   aplicarTema(tema);
+  renderPlanillas();
   fFecha.value = hoyLocal();
   cargarOpciones();
   getHist().then(() => { prepararFiltros(); }).catch(() => {}); // precarga en segundo plano
